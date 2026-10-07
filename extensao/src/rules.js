@@ -6,7 +6,20 @@ export const LIMITS = {
   lowStock: 5,
   minImagesSingle: 5,
   descriptionMin: 100,
+  // Visitas sem nenhuma venda a partir das quais o anúncio tem problema de conversão.
+  visitsWithoutSales: 30,
 };
+
+// Limites de título por marketplace (o Mercado Livre corta em 60 caracteres).
+export const TITLE_MAX_BY_MARKETPLACE = {
+  'Mercado Livre': 60,
+  Shopee: 120,
+};
+
+function titleMaxFor(marketplace = '') {
+  const key = Object.keys(TITLE_MAX_BY_MARKETPLACE).find((m) => marketplace.startsWith(m));
+  return key ? TITLE_MAX_BY_MARKETPLACE[key] : LIMITS.titleMax;
+}
 
 const PENALTY = { critical: 30, warning: 10, info: 2 };
 
@@ -37,7 +50,7 @@ export function parseNumber(text) {
   return Number.isFinite(n) ? n : null;
 }
 
-export function evaluateListing(listing, { mode = 'list' } = {}) {
+export function evaluateListing(listing, { mode = 'list', marketplace = '' } = {}) {
   const issues = [];
   const add = (severity, message) => issues.push({ severity, message });
   const title = (listing.title || '').trim();
@@ -48,8 +61,9 @@ export function evaluateListing(listing, { mode = 'list' } = {}) {
     if (title.length < LIMITS.titleMin) {
       add('warning', `Título curto (${title.length} caracteres). Inclua marca, tipo de produto e características principais.`);
     }
-    if (title.length > LIMITS.titleMax) {
-      add('warning', `Título muito longo (${title.length} caracteres). Títulos longos são cortados na busca.`);
+    const titleMax = titleMaxFor(marketplace);
+    if (title.length > titleMax) {
+      add('warning', `Título muito longo (${title.length} caracteres; limite recomendado ${titleMax}). Títulos longos são cortados.`);
     }
     const letters = title.replace(/[^A-Za-zÀ-ÿ]/g, '');
     if (letters.length >= 10 && letters === letters.toUpperCase()) {
@@ -74,7 +88,19 @@ export function evaluateListing(listing, { mode = 'list' } = {}) {
     else if (stock !== null && stock < LIMITS.lowStock) add('warning', `Estoque baixo (${stock}).`);
   }
 
-  if (listing.sales !== '' && listing.sales !== undefined && parseNumber(listing.sales) === 0) {
+  const price = parseNumber(listing.price);
+  const promoPrice = parseNumber(listing.promoPrice);
+  if (price && promoPrice && promoPrice > price) {
+    add('warning', 'Preço com desconto maior que o preço original.');
+  }
+
+  const sales = listing.sales !== '' && listing.sales !== undefined ? parseNumber(listing.sales) : null;
+  const visits = listing.visits !== '' && listing.visits !== undefined ? parseNumber(listing.visits) : null;
+  if (sales === 0 && visits !== null && visits >= LIMITS.visitsWithoutSales) {
+    add('warning', `${visits} visitas e nenhuma venda: o anúncio atrai, mas não converte. Revise preço, fotos, frete e descrição.`);
+  } else if (sales === 0 && visits === 0) {
+    add('info', 'Nenhuma visita ainda. Melhore palavras-chave do título ou impulsione o anúncio.');
+  } else if (sales === 0) {
     add('info', 'Nenhuma venda registrada. Revise preço, fotos e título.');
   }
 
@@ -135,7 +161,7 @@ export function evaluateAll(listings, options) {
 }
 
 export function toCsv(listings) {
-  const cols = ['score', 'title', 'sku', 'price', 'stock', 'sales', 'status', 'images', 'issues'];
+  const cols = ['score', 'title', 'store', 'sku', 'price', 'promoPrice', 'stock', 'sales', 'visits', 'likes', 'variants', 'status', 'issues'];
   const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const lines = listings.map((l) =>
     cols

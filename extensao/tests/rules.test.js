@@ -53,3 +53,17 @@ test('evaluateAll marca duplicados, ordena do pior para o melhor e gera CSV', ()
   assert.equal(report.listings.at(-1).score, 100);
   assert.match(toCsv(report.listings), /^score;title;/);
 });
+
+test('visitas sem vendas, desconto invertido e limite do Mercado Livre', () => {
+  const r = evaluateListing(
+    {
+      title: 'Conjunto Bebê Menina Verão Algodão Estampado Body e Shorts Rosa',
+      price: 'R$ 65,99', promoPrice: 'R$ 69,98', stock: '1200', sales: '0', visits: '45', images: 1,
+    },
+    { marketplace: 'Mercado Livre (UpSeller)' },
+  );
+  const msgs = r.issues.map((i) => i.message).join('\n');
+  assert.match(msgs, /limite recomendado 60/);
+  assert.match(msgs, /45 visitas e nenhuma venda/);
+  assert.match(msgs, /desconto maior/);
+});

@@ -3,18 +3,28 @@
 export function extractListings() {
   const norm = (s) => (s || '').replace(/\s+/g, ' ').trim();
   const host = location.hostname;
-  const marketplace = /tiktok/i.test(host)
-    ? 'TikTok Shop'
-    : /shein|geiwohuo/i.test(host)
-      ? 'Shein'
-      : host;
+  const isUpSeller = /upseller/i.test(host);
+
+  // No UpSeller, o marketplace vem do caminho: /products/shopee/active, /products/tiktok/active...
+  const MARKETPLACES = [
+    [/mercado|meli|\bml\b/i, 'Mercado Livre'],
+    [/shopee/i, 'Shopee'],
+    [/shein|geiwohuo/i, 'Shein'],
+    [/tiktok/i, 'TikTok Shop'],
+    [/temu/i, 'Temu'],
+    [/kwai/i, 'Kwai Shop'],
+  ];
+  const source = isUpSeller ? location.pathname : host;
+  const found = MARKETPLACES.find(([re]) => re.test(source));
+  const marketplace = found ? found[1] + (isUpSeller ? ' (UpSeller)' : '') : host;
 
   // Ordem importa: colunas mais específicas primeiro, "título" por último
   // (porque "Produto" costuma aparecer em vários cabeçalhos).
   const COLUMN_PATTERNS = [
     ['sku', /\bsku\b|c[oó]digo|seller sku/i],
+    ['promoPrice', /pre[cç]o com|promo|desconto|discount|sale price/i],
     ['price', /pre[cç]o|price|valor/i],
-    ['stock', /estoque|stock|invent[aá]rio|inventory|quantidade dispon/i],
+    ['stock', /estoque|stock|invent[aá]rio|inventory|quantidade/i],
     ['sales', /vendid|vendas|sold|sales|pedidos/i],
     ['status', /status|situa[cç][aã]o/i],
     ['title', /produto|product|nome|name|t[ií]tulo|title|item|an[uú]ncio/i],
@@ -35,9 +45,8 @@ export function extractListings() {
   }
 
   function readGrid(root) {
-    const headers = [...root.querySelectorAll('th, [role="columnheader"]')]
-      .filter(isVisible)
-      .map((h) => norm(h.innerText));
+    const headerEls = [...root.querySelectorAll('th, [role="columnheader"]')].filter(isVisible);
+    const headers = headerEls.map((h) => norm(h.innerText));
 
     const columnOf = {};
     const used = new Set();
@@ -49,30 +58,76 @@ export function extractListings() {
       }
     }
 
+    // Ignora linhas aninhadas (ex.: variantes expandidas dentro de uma célula).
     const rows = [...root.querySelectorAll('tbody tr, [role="row"]')].filter((r) =>
-      isVisible(r) && r.querySelector('td, [role="gridcell"], [role="cell"]'),
+      isVisible(r) &&
+      r.querySelector('td, [role="gridcell"], [role="cell"]') &&
+      !r.parentElement.closest('td, [role="gridcell"], [role="cell"]'),
     );
+    const cellsOf = (row) => {
+      const direct = [...row.querySelectorAll(':scope > td')];
+      return direct.length ? direct : [...row.querySelectorAll('[role="gridcell"], [role="cell"]')];
+    };
+    const countIn = (text, re) => {
+      const m = text.match(re);
+      return m ? m[1] : '';
+    };
 
     return rows
       .map((row) => {
-        const cells = [...row.querySelectorAll('td, [role="gridcell"], [role="cell"]')];
-        const texts = cells.map((c) => norm(c.innerText));
-        const at = (key) => (columnOf[key] !== undefined ? texts[columnOf[key]] || '' : '');
+        const allCells = cellsOf(row);
+        // Se o número de células não bate com o de cabeçalhos (ex.: foto sem cabeçalho),
+        // casa cada coluna com a célula que está embaixo do cabeçalho na tela.
+        const cellFor = (idx) => {
+          if (allCells.length === headerEls.length) return allCells[idx];
+          const h = headerEls[idx].getBoundingClientRect();
+          const center = h.left + h.width / 2;
+          return (
+            allCells.find((c) => {
+              const r = c.getBoundingClientRect();
+              return r.width && r.left <= center && center <= r.right;
+            }) || allCells[idx]
+          );
+        };
+        const cells = [];
+        for (const idx of Object.values(columnOf)) cells[idx] = cellFor(idx);
+        const texts = allCells.map((c) => norm(c.innerText));
+        const at = (key) => (columnOf[key] !== undefined ? norm(cells[columnOf[key]]?.innerText) : '');
+        const rowText = texts.join(' ');
 
         let title = at('title');
-        // A célula de produto costuma juntar nome + SKU + ID; o nome é a linha mais longa.
+        let store = '';
         if (title && columnOf.title !== undefined) {
-          const lines = (cells[columnOf.title].innerText || '').split('\n').map(norm).filter(Boolean);
-          if (lines.length > 1) title = lines.reduce((a, b) => (b.length > a.length ? b : a));
+          const lines = (cells[columnOf.title]?.innerText || '')
+            .split('\n')
+            .map(norm)
+            .filter((l) => l && !/^variantes?\b/i.test(l));
+          if (isUpSeller) {
+            // UpSeller: 1ª linha = nome do anúncio, 2ª linha = nome da loja.
+            title = lines[0] || title;
+            store = lines[1] || '';
+          } else if (lines.length > 1) {
+            // A célula de produto costuma juntar nome + SKU + ID; o nome é a linha mais longa.
+            title = lines.reduce((a, b) => (b.length > a.length ? b : a));
+          }
         }
         if (!title) title = texts.reduce((a, b) => (b.length > a.length ? b : a), '');
 
+        // SKU no UpSeller vem com o ID do anúncio embaixo; fica só com a 1ª linha.
+        const sku = columnOf.sku !== undefined ? norm((cells[columnOf.sku]?.innerText || '').split('\n')[0]) : '';
+
         return {
           title,
-          sku: at('sku'),
+          store,
+          sku,
           price: at('price'),
+          promoPrice: at('promoPrice'),
           stock: at('stock'),
-          sales: at('sales'),
+          // "Desempenho" do UpSeller: "Vendas: 0 Eu gosto: 0 Visitas: 2"
+          sales: at('sales') || countIn(rowText, /vendas?\s*:\s*([\d.,]+)/i),
+          likes: countIn(rowText, /eu gosto\s*:\s*([\d.,]+)/i),
+          visits: countIn(rowText, /visitas?\s*:\s*([\d.,]+)/i),
+          variants: countIn(rowText, /variantes?\s*\((\d+)\)/i),
           status: at('status'),
           images: row.querySelectorAll('img').length,
         };

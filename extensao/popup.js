@@ -48,10 +48,13 @@ function render(report) {
     const details = document.createElement('div');
     details.className = 'details';
     details.textContent = [
+      l.store,
       l.sku && `SKU ${l.sku}`,
       l.price && `Preço ${l.price}`,
+      l.promoPrice && `Promo ${l.promoPrice}`,
       l.stock && `Estoque ${l.stock}`,
       l.sales && `Vendas ${l.sales}`,
+      l.visits && `Visitas ${l.visits}`,
       l.status && `Status ${l.status}`,
     ].filter(Boolean).join(' · ');
 
@@ -94,7 +97,7 @@ async function analyze() {
     }
 
     const report = {
-      ...evaluateAll(result.listings, { mode: result.mode }),
+      ...evaluateAll(result.listings, { mode: result.mode, marketplace: result.marketplace }),
       marketplace: result.marketplace,
       url: result.url,
       mode: result.mode,

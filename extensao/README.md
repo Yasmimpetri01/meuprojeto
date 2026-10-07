@@ -1,4 +1,4 @@
-# Avaliador de Anúncios – TikTok Shop & Shein
+# Avaliador de Anúncios – UpSeller, TikTok Shop & Shein
 
 Extensão para Chrome que lê a página aberta do painel do vendedor e dá uma
 nota de 0 a 100 para cada anúncio, apontando o que melhorar.
@@ -20,6 +20,19 @@ A extensão só existe no perfil onde você instalou; os outros perfis não são
 
 ## Como usar
 
+### Pelo UpSeller (recomendado — todas as lojas num lugar só)
+
+1. No UpSeller, vá em **Produtos → Gestão de Anúncios** e clique em **Ativo** na linha do
+   marketplace (Mercado Livre, Shopee, Shein, TikTok Shop, Temu ou Kwai Shop).
+2. Deixe as variantes recolhidas e escolha uma quantidade por página que mostre todos os anúncios.
+3. Clique no ícone da extensão → **Analisar esta página**.
+4. Repita para cada marketplace.
+
+Pelo UpSeller a extensão também lê loja, preço com desconto, visitas, curtidas e
+número de variantes, e avisa anúncios com muitas visitas e nenhuma venda.
+
+### Direto no painel do marketplace
+
 1. Entre no painel do vendedor:
    - **TikTok Shop**: Seller Center → *Produtos → Gerenciar produtos*
    - **Shein**: Seller Hub → *Produtos → Lista de produtos*
@@ -38,8 +51,8 @@ quantidade de imagens e o tamanho da descrição.
 | Severidade | Regra |
 |---|---|
 | 🔴 Crítico | Sem estoque · preço zerado/ausente · status reprovado/suspenso/com violação · anúncio sem imagens (edição) |
-| 🟠 Alerta | Título curto (< 25) ou longo (> 150 caracteres) · título em MAIÚSCULAS · palavra repetida 3+ vezes · estoque baixo (< 5) · anúncio inativo · título duplicado · menos de 5 imagens ou descrição curta (edição) |
-| 🔵 Info | Nenhuma venda · anúncio em rascunho |
+| 🟠 Alerta | Título curto (< 25) ou longo (> 60 no Mercado Livre, > 120 na Shopee, > 150 nos demais) · 30+ visitas e nenhuma venda · preço com desconto maior que o original · título em MAIÚSCULAS · palavra repetida 3+ vezes · estoque baixo (< 5) · anúncio inativo · título duplicado · menos de 5 imagens ou descrição curta (edição) |
+| 🔵 Info | Nenhuma venda · nenhuma visita · anúncio em rascunho |
 
 Cada crítico tira 30 pontos, cada alerta 10 e cada info 2. Os limites são
 boas práticas gerais, não regras oficiais das plataformas — ajuste em
