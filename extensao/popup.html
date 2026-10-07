@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <title>Avaliador de Anúncios</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Avaliador de Anúncios</h1>
+      <p class="hint">Abra a lista de produtos (ou um anúncio) no painel do TikTok Shop ou da Shein e clique em analisar.</p>
+      <div class="actions">
+        <button id="analyze">Analisar esta página</button>
+        <button id="export" class="secondary" disabled>Exportar CSV</button>
+      </div>
+    </header>
+
+    <p id="message" class="message" hidden></p>
+
+    <section id="summary" hidden>
+      <div class="meta" id="meta"></div>
+      <div class="cards">
+        <div class="card"><span id="total">0</span><small>anúncios</small></div>
+        <div class="card"><span id="avg">0</span><small>nota média</small></div>
+        <div class="card critical"><span id="critical">0</span><small>críticos</small></div>
+        <div class="card warning"><span id="warning">0</span><small>com alertas</small></div>
+      </div>
+      <label class="filter"><input type="checkbox" id="onlyProblems" checked /> Mostrar só anúncios com problemas</label>
+    </section>
+
+    <ul id="results"></ul>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

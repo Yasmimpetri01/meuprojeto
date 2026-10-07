@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "Avaliador de Anúncios – TikTok Shop & Shein",
+  "version": "0.1.0",
+  "description": "Lê a página aberta do painel do vendedor (TikTok Shop ou Shein) e avalia a qualidade dos seus anúncios.",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "action": {
+    "default_title": "Avaliar anúncios desta página",
+    "default_popup": "popup.html"
+  }
+}
