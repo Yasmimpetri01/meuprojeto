@@ -50,6 +50,13 @@ export function parseNumber(text) {
   return Number.isFinite(n) ? n : null;
 }
 
+// Estoque pode vir dividido, ex. Shopee: "FBS 0 Vendedor 451". Soma todas as partes.
+export function parseStock(text) {
+  const parts = String(text ?? '').match(/-?\d[\d.,]*/g);
+  if (!parts) return null;
+  return parts.reduce((sum, p) => sum + (parseNumber(p) ?? 0), 0);
+}
+
 export function evaluateListing(listing, { mode = 'list', marketplace = '' } = {}) {
   const issues = [];
   const add = (severity, message) => issues.push({ severity, message });
@@ -83,7 +90,7 @@ export function evaluateListing(listing, { mode = 'list', marketplace = '' } = {
   }
 
   if (listing.stock !== '' && listing.stock !== undefined) {
-    const stock = parseNumber(listing.stock);
+    const stock = parseStock(listing.stock);
     if (stock !== null && stock <= 0) add('critical', 'Sem estoque — o anúncio não vende.');
     else if (stock !== null && stock < LIMITS.lowStock) add('warning', `Estoque baixo (${stock}).`);
   }

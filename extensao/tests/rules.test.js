@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseNumber, evaluateListing, evaluateAll, toCsv } from '../src/rules.js';
+import { parseNumber, parseStock, evaluateListing, evaluateAll, toCsv } from '../src/rules.js';
 
 test('parseNumber entende formatos BR e internacionais', () => {
   assert.equal(parseNumber('R$ 1.234,56'), 1234.56);
@@ -66,4 +66,12 @@ test('visitas sem vendas, desconto invertido e limite do Mercado Livre', () => {
   assert.match(msgs, /limite recomendado 60/);
   assert.match(msgs, /45 visitas e nenhuma venda/);
   assert.match(msgs, /desconto maior/);
+});
+
+test('estoque dividido (FBS + Vendedor) é somado', () => {
+  assert.equal(parseStock('FBS 0 Vendedor 451'), 451);
+  assert.equal(parseStock('1.200 ∨'), 1200);
+  assert.equal(parseStock('FBS 0 Vendedor 0'), 0);
+  const r = evaluateListing({ title: 'Kit 3 Extensor de Body Bebê Menina Alongador 4 Botões', stock: 'FBS 0 Vendedor 451', images: 1 });
+  assert.ok(!r.issues.some((i) => /Sem estoque/.test(i.message)));
 });
