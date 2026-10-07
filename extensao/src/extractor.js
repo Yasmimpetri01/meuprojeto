@@ -21,7 +21,7 @@ export function extractListings() {
   // Ordem importa: colunas mais específicas primeiro, "título" por último
   // (porque "Produto" costuma aparecer em vários cabeçalhos).
   const COLUMN_PATTERNS = [
-    ['sku', /\bsku\b|c[oó]digo|seller sku/i],
+    ['sku', /\bsku\b|c[oó]digo|seller sku|n[uú]mero do produto/i],
     ['promoPrice', /pre[cç]o com|promo|desconto|discount|sale price/i],
     ['revenue', /valor (total )?(de|das) vendas|faturamento|receita|gmv/i],
     ['price', /pre[cç]o|price|valor/i],
@@ -127,7 +127,8 @@ export function extractListings() {
           .map(norm);
         const sku = skuLines[0] || '';
         const listingId =
-          skuLines.slice(1).find((l) => /^\d{6,}$/.test(l)) || countIn(rowText, /\bID\s*:?\s*(\d{6,})/i);
+          // Shein usa ID com letra na frente: "a250607953525".
+          skuLines.slice(1).find((l) => /^[a-z]{0,2}\d{6,}$/i.test(l)) || countIn(rowText, /\bID\s*:?\s*(\d{6,})/i);
         // TikTok: a célula de preço traz "R$ 121,99 Promoção: R$ 72,99".
         const promoInPrice = countIn(at('price'), /promo[cç][aã]o\s*:?\s*(R?\$?\s*[\d.,]+)/i);
         const price = at('price').split(/promo[cç][aã]o/i)[0].trim();
