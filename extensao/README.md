@@ -33,8 +33,12 @@ número de variantes, e avisa anúncios com muitas visitas e nenhuma venda.
 
 ### Direto no painel do marketplace
 
+O **TikTok Shop** não mostra vendas e visitas por anúncio dentro do UpSeller. Para
+ter esses dados, analise pela Central do vendedor do TikTok (*Produtos → Gerenciar
+produtos*): a extensão lê itens vendidos, visualizações, promoção e ID de cada produto.
+
 1. Entre no painel do vendedor:
-   - **TikTok Shop**: Seller Center → *Produtos → Gerenciar produtos*
+   - **TikTok Shop**: Central do vendedor → *Produtos → Gerenciar produtos*
    - **Shein**: Seller Hub → *Produtos → Lista de produtos*
 2. Clique no ícone da extensão → **Analisar esta página**.
 3. Veja a nota de cada anúncio (os piores aparecem primeiro) e os problemas encontrados.
@@ -64,7 +68,7 @@ Revise a coluna "Título sugerido" antes de aplicar pelo **Editar em Massa** do 
 | Severidade | Regra |
 |---|---|
 | 🔴 Crítico | Sem estoque · preço zerado/ausente · status reprovado/suspenso/com violação · anúncio sem imagens (edição) |
-| 🟠 Alerta | Título curto (< 25) ou longo (> 60 no Mercado Livre, > 120 na Shopee, > 150 nos demais) · 30+ visitas e nenhuma venda · preço com desconto maior que o original · título em MAIÚSCULAS · palavra repetida 3+ vezes · estoque baixo (< 5) · anúncio inativo · título duplicado · menos de 5 imagens ou descrição curta (edição) |
+| 🟠 Alerta | Título curto (< 25) ou longo (> 60 no Mercado Livre, > 120 na Shopee, > 150 nos demais) · 30+ visitas e nenhuma venda · conversão abaixo de 0,5% (com 200+ visitas) · preço com desconto maior que o original · título em MAIÚSCULAS · palavra repetida 3+ vezes · estoque baixo (< 5) · anúncio inativo · título duplicado · menos de 5 imagens ou descrição curta (edição) |
 | 🔵 Info | Nenhuma venda · nenhuma visita · anúncio em rascunho |
 
 Cada crítico tira 30 pontos, cada alerta 10 e cada info 2. Os limites são

@@ -8,6 +8,9 @@ export const LIMITS = {
   descriptionMin: 100,
   // Visitas sem nenhuma venda a partir das quais o anúncio tem problema de conversão.
   visitsWithoutSales: 30,
+  // Conversão (vendas ÷ visitas) abaixo disso, com visitas suficientes, é considerada baixa.
+  minConversion: 0.005,
+  visitsForConversion: 200,
 };
 
 // Limites de título por marketplace (o Mercado Livre corta em 60 caracteres).
@@ -107,6 +110,9 @@ export function evaluateListing(listing, { mode = 'list', marketplace = '' } = {
     add('warning', `${visits} visitas e nenhuma venda: o anúncio atrai, mas não converte. Revise preço, fotos, frete e descrição.`);
   } else if (sales === 0 && visits === 0) {
     add('info', 'Nenhuma visita ainda. Melhore palavras-chave do título ou impulsione o anúncio.');
+  } else if (sales > 0 && visits >= LIMITS.visitsForConversion && sales / visits < LIMITS.minConversion) {
+    const pct = ((sales / visits) * 100).toLocaleString('pt-BR', { maximumFractionDigits: 2 });
+    add('warning', `Conversão baixa: ${sales} venda(s) em ${visits} visitas (${pct}%). Revise preço, fotos, frete e descrição.`);
   } else if (sales === 0) {
     add('info', 'Nenhuma venda registrada. Revise preço, fotos e título.');
   }

@@ -79,6 +79,8 @@ export function extractListings() {
     return rows
       .map((row) => {
         const allCells = cellsOf(row);
+        // Linha de uma célula só ocupando a tabela toda = linha auxiliar ("4 SKUs  Expandir").
+        if (allCells.length === 1 && headerEls.length > 2) return null;
         // Se o número de células não bate com o de cabeçalhos (ex.: foto sem cabeçalho),
         // casa cada coluna com a célula que está embaixo do cabeçalho na tela.
         const cellFor = (idx) => {
@@ -121,26 +123,34 @@ export function extractListings() {
           .split('\n')
           .map(norm);
         const sku = skuLines[0] || '';
-        const listingId = skuLines.slice(1).find((l) => /^\d{6,}$/.test(l)) || '';
+        const listingId =
+          skuLines.slice(1).find((l) => /^\d{6,}$/.test(l)) || countIn(rowText, /\bID\s*:?\s*(\d{6,})/i);
+        // TikTok: a célula de preço traz "R$ 121,99 Promoção: R$ 72,99".
+        const promoInPrice = countIn(at('price'), /promo[cç][aã]o\s*:?\s*(R?\$?\s*[\d.,]+)/i);
+        const price = at('price').split(/promo[cç][aã]o/i)[0].trim();
 
         return {
           title,
           store,
           sku: clean(sku),
           listingId,
-          price: numeric(at('price')),
-          promoPrice: numeric(at('promoPrice')),
+          price: numeric(price),
+          promoPrice: numeric(at('promoPrice')) || promoInPrice,
           stock: numeric(at('stock')),
-          // "Desempenho" do UpSeller: "Vendas: 0 Eu gosto: 0 Visitas: 2"
-          sales: at('sales') || countIn(rowText, /vendas?\s*:\s*([\d.,]+)/i),
+          // UpSeller: "Vendas: 0 Eu gosto: 0 Visitas: 2"; TikTok: "0 item vendido Visualizações: 352".
+          sales:
+            countIn(rowText, /([\d.,]+)\s*ite(?:m|ns)\s*vendidos?/i) ||
+            countIn(rowText, /vendas?\s*:\s*([\d.,]+)/i) ||
+            at('sales'),
           likes: countIn(rowText, /eu gosto\s*:\s*([\d.,]+)/i),
-          visits: countIn(rowText, /visitas?\s*:\s*([\d.,]+)/i),
+          visits: countIn(rowText, /(?:visitas?|visualiza[cç](?:õ|o)es)\s*:\s*([\d.,]+)/i),
           variants: countIn(rowText, /variantes?\s*\((\d+)\)/i),
           status: clean(at('status')),
           images: row.querySelectorAll('img').length,
         };
       })
-      .filter((l) => l.title);
+      // Descarta linhas auxiliares, ex. TikTok: "4 SKUs  Expandir".
+      .filter((l) => l && l.title && !/^\d+\s*skus?\b|^expandir\b/i.test(l.title));
   }
 
   // 1) Modo lista: tabelas de produtos.

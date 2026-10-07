@@ -101,3 +101,8 @@ test('planilha de títulos traz só os que precisam de ajuste e marca duplicados
   assert.match(csv, /Título igual em 2 anúncios/);
   assert.match(csv.split('\n')[0], /^Marketplace;Loja;ID do anúncio/);
 });
+
+test('conversão baixa com muitas visitas', () => {
+  const r = evaluateListing({ title: 'Kit 3 Body Bebê Menino Proteção Solar UV50+ Manga Longa', sales: '1', visits: '1.594', images: 1 });
+  assert.ok(r.issues.some((i) => /Conversão baixa: 1 venda\(s\) em 1594 visitas \(0,06%\)/.test(i.message)));
+});
