@@ -68,6 +68,9 @@ export function extractListings() {
       const direct = [...row.querySelectorAll(':scope > td')];
       return direct.length ? direct : [...row.querySelectorAll('[role="gridcell"], [role="cell"]')];
     };
+    // "-" significa vazio; preço/estoque sem número (ex.: botão "+ Adicionar") também.
+    const clean = (v) => (/^[-–—]*$/.test(v) ? '' : v);
+    const numeric = (v) => (/\d/.test(v) ? v : '');
     const countIn = (text, re) => {
       const m = text.match(re);
       return m ? m[1] : '';
@@ -119,16 +122,16 @@ export function extractListings() {
         return {
           title,
           store,
-          sku,
-          price: at('price'),
-          promoPrice: at('promoPrice'),
-          stock: at('stock'),
+          sku: clean(sku),
+          price: numeric(at('price')),
+          promoPrice: numeric(at('promoPrice')),
+          stock: numeric(at('stock')),
           // "Desempenho" do UpSeller: "Vendas: 0 Eu gosto: 0 Visitas: 2"
           sales: at('sales') || countIn(rowText, /vendas?\s*:\s*([\d.,]+)/i),
           likes: countIn(rowText, /eu gosto\s*:\s*([\d.,]+)/i),
           visits: countIn(rowText, /visitas?\s*:\s*([\d.,]+)/i),
           variants: countIn(rowText, /variantes?\s*\((\d+)\)/i),
-          status: at('status'),
+          status: clean(at('status')),
           images: row.querySelectorAll('img').length,
         };
       })
