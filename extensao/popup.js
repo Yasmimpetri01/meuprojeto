@@ -1,5 +1,5 @@
 import { extractListings } from './src/extractor.js';
-import { evaluateAll, toCsv } from './src/rules.js';
+import { evaluateAll, toCsv, toTitlesCsv } from './src/rules.js';
 
 const $ = (id) => document.getElementById(id);
 let lastReport = null;
@@ -21,6 +21,7 @@ function render(report) {
 
   $('summary').hidden = false;
   $('export').disabled = !listings.length;
+  $('titles').disabled = !listings.length;
   $('meta').textContent = `${marketplace} · ${new Date(analyzedAt).toLocaleString('pt-BR')} · ${url}`;
   $('total').textContent = summary.total;
   $('avg').textContent = summary.averageScore;
@@ -112,20 +113,36 @@ async function analyze() {
   }
 }
 
-function exportCsv() {
-  if (!lastReport) return;
+function download(prefix, csv) {
   // BOM para o Excel abrir os acentos corretamente.
-  const blob = new Blob(['﻿' + toCsv(lastReport.listings)], { type: 'text/csv;charset=utf-8' });
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   const stamp = new Date(lastReport.analyzedAt).toISOString().slice(0, 10);
-  a.download = `anuncios-${lastReport.marketplace.replace(/\s+/g, '-').toLowerCase()}-${stamp}.csv`;
+  const market = lastReport.marketplace.replace(/[()]/g, '').replace(/\s+/g, '-').toLowerCase();
+  a.download = `${prefix}-${market}-${stamp}.csv`;
   a.click();
   URL.revokeObjectURL(a.href);
 }
 
+function exportCsv() {
+  if (lastReport) download('anuncios', toCsv(lastReport.listings));
+}
+
+function exportTitles() {
+  if (!lastReport) return;
+  const { csv, count } = toTitlesCsv(lastReport.listings, lastReport.marketplace);
+  if (!count) {
+    showMessage('Nenhum título precisa de ajuste nesta página. 🎉');
+    return;
+  }
+  download('titulos-sugeridos', csv);
+  showMessage(`Planilha gerada com ${count} título(s). Revise a coluna "Título sugerido" antes de aplicar no UpSeller.`);
+}
+
 $('analyze').addEventListener('click', analyze);
 $('export').addEventListener('click', exportCsv);
+$('titles').addEventListener('click', exportTitles);
 $('onlyProblems').addEventListener('change', () => {
   showMessage('');
   if (lastReport) render(lastReport);

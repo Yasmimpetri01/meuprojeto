@@ -46,6 +46,19 @@ quantidade de imagens e o tamanho da descrição.
 > Dica: se a lista tiver várias páginas, aumente a quantidade de itens por
 > página no painel (ex.: 100) antes de analisar.
 
+## Planilha de títulos
+
+Depois de analisar, **Planilha de títulos** baixa um CSV só com os anúncios cujo
+título precisa de ajuste: loja, ID do anúncio, SKU, título atual, **título
+sugerido** e o que revisar manualmente.
+
+- Títulos todos em MAIÚSCULAS são convertidos automaticamente
+  (mantendo siglas e tamanhos como UV50+, FPS, RN, P, M, G).
+- Títulos duplicados, longos, curtos ou com palavras repetidas são apenas
+  marcados em "Revisar manualmente" — a extensão não inventa informação.
+
+Revise a coluna "Título sugerido" antes de aplicar pelo **Editar em Massa** do UpSeller.
+
 ## O que é avaliado
 
 | Severidade | Regra |

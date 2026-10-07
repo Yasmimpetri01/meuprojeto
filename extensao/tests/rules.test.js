@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseNumber, parseStock, evaluateListing, evaluateAll, toCsv } from '../src/rules.js';
+import { parseNumber, parseStock, suggestTitle, toTitlesCsv, evaluateListing, evaluateAll, toCsv } from '../src/rules.js';
 
 test('parseNumber entende formatos BR e internacionais', () => {
   assert.equal(parseNumber('R$ 1.234,56'), 1234.56);
@@ -74,4 +74,30 @@ test('estoque dividido (FBS + Vendedor) é somado', () => {
   assert.equal(parseStock('FBS 0 Vendedor 0'), 0);
   const r = evaluateListing({ title: 'Kit 3 Extensor de Body Bebê Menina Alongador 4 Botões', stock: 'FBS 0 Vendedor 451', images: 1 });
   assert.ok(!r.issues.some((i) => /Sem estoque/.test(i.message)));
+});
+
+test('sugere título sem maiúsculas preservando siglas, números e tamanhos', () => {
+  const { suggested, changes } = suggestTitle('KIT 3 BODY BEBÊ MENINA PROTEÇÃO SOLAR UV50+ CORES NEON VERÃO PRAIA PISCINA');
+  assert.equal(suggested, 'Kit 3 Body Bebê Menina Proteção Solar UV50+ Cores Neon Verão Praia Piscina');
+  assert.deepEqual(changes, ['Maiúsculas convertidas']);
+  assert.equal(
+    suggestTitle('KIT 2 OU 3 BODY BEBÊ RN P M G DE ALGODÃO COM FPS 50 MEIA-CALÇA').suggested,
+    'Kit 2 ou 3 Body Bebê RN P M G de Algodão com FPS 50 Meia-Calça',
+  );
+});
+
+test('planilha de títulos traz só os que precisam de ajuste e marca duplicados', () => {
+  const t = 'KIT 3 BODY BEBÊ MENINA PROTEÇÃO SOLAR UV50+ CORES NEON VERÃO PRAIA PISCINA';
+  const { csv, count } = toTitlesCsv(
+    [
+      { title: t, store: 'ZIPZAPBABY TIKTOK', listingId: '1737651492504438728' },
+      { title: t, store: 'ZIPZAPBABY TIKTOK', listingId: '1737836918943942600' },
+      { title: 'Conjunto Bebê Menina Verão Body e Shorts Algodão', store: 'ZIPZAPBABY TIKTOK' },
+    ],
+    'TikTok Shop (UpSeller)',
+  );
+  assert.equal(count, 2);
+  assert.match(csv, /1737651492504438728/);
+  assert.match(csv, /Título igual em 2 anúncios/);
+  assert.match(csv.split('\n')[0], /^Marketplace;Loja;ID do anúncio/);
 });

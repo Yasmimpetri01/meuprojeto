@@ -167,8 +167,84 @@ export function evaluateAll(listings, options) {
   };
 }
 
+const SMALL_WORDS = new Set(
+  'a o as os ao aos à às de da do das dos e em no na nos nas com sem para pra por ou até um uma'.split(' '),
+);
+const ACRONYMS = new Set(['UV', 'FPS', 'LED', 'USB', 'TV', 'PVC', 'EVA', 'ABS', 'DIY', 'BB']);
+
+function fixWordCase(word, isFirst) {
+  return word
+    .split('-')
+    .map((part, i) => {
+      if (!part) return part;
+      if (/\d/.test(part) || ACRONYMS.has(part)) return part; // UV50+, 100%, 4
+      // Siglas e tamanhos sem vogal: RN, P, M, G, GG, PP
+      if (/^[A-Z]{1,3}$/.test(part) && !/[AEIOU]/.test(part)) return part;
+      const lower = part.toLocaleLowerCase('pt-BR');
+      if (!(isFirst && i === 0) && SMALL_WORDS.has(lower)) return lower;
+      return lower.charAt(0).toLocaleUpperCase('pt-BR') + lower.slice(1);
+    })
+    .join('-');
+}
+
+// Sugere um título corrigido e lista o que ainda precisa de revisão manual.
+export function suggestTitle(title, { marketplace = '', duplicates = 0 } = {}) {
+  const original = (title || '').replace(/\s+/g, ' ').trim();
+  let suggested = original;
+  const changes = [];
+  const review = [];
+
+  const letters = original.replace(/[^A-Za-zÀ-ÿ]/g, '');
+  if (letters.length >= 10 && letters === letters.toUpperCase()) {
+    suggested = original
+      .split(' ')
+      .map((w, i) => fixWordCase(w, i === 0))
+      .join(' ');
+    changes.push('Maiúsculas convertidas');
+  }
+
+  if (duplicates > 1) {
+    review.push(`Título igual em ${duplicates} anúncios: diferencie (cor, tamanho, quantidade, modelo)`);
+  }
+  const max = titleMaxFor(marketplace);
+  if (suggested.length > max) review.push(`Acima de ${max} caracteres: encurte`);
+  if (suggested.length < LIMITS.titleMin) review.push('Título curto: acrescente características');
+  const counts = {};
+  for (const w of suggested.toLowerCase().match(/[a-zà-ÿ0-9]{3,}/g) || []) counts[w] = (counts[w] || 0) + 1;
+  const repeated = Object.keys(counts).filter((w) => counts[w] >= 3);
+  if (repeated.length) review.push(`Palavra repetida: ${repeated.join(', ')}`);
+
+  return { suggested, changes, review };
+}
+
+// Planilha só com os anúncios cujo título precisa de ajuste.
+export function toTitlesCsv(listings, marketplace = '') {
+  const byTitle = {};
+  for (const l of listings) {
+    const key = (l.title || '').toLowerCase().trim();
+    byTitle[key] = (byTitle[key] || 0) + 1;
+  }
+  const header = [
+    'Marketplace', 'Loja', 'ID do anúncio', 'SKU', 'Título atual', 'Título sugerido',
+    'Caracteres', 'O que mudou', 'Revisar manualmente',
+  ];
+  const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const rows = [];
+  for (const l of listings) {
+    const duplicates = byTitle[(l.title || '').toLowerCase().trim()];
+    const { suggested, changes, review } = suggestTitle(l.title, { marketplace, duplicates });
+    if (!changes.length && !review.length) continue;
+    rows.push(
+      [marketplace, l.store, l.listingId, l.sku, l.title, suggested, suggested.length, changes.join(' | '), review.join(' | ')]
+        .map(esc)
+        .join(';'),
+    );
+  }
+  return { csv: [header.join(';'), ...rows].join('\n'), count: rows.length };
+}
+
 export function toCsv(listings) {
-  const cols = ['score', 'title', 'store', 'sku', 'price', 'promoPrice', 'stock', 'sales', 'visits', 'likes', 'variants', 'status', 'issues'];
+  const cols = ['score', 'title', 'store', 'listingId', 'sku', 'price', 'promoPrice', 'stock', 'sales', 'visits', 'likes', 'variants', 'status', 'issues'];
   const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const lines = listings.map((l) =>
     cols

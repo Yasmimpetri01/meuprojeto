@@ -116,13 +116,18 @@ export function extractListings() {
         }
         if (!title) title = texts.reduce((a, b) => (b.length > a.length ? b : a), '');
 
-        // SKU no UpSeller vem com o ID do anúncio embaixo; fica só com a 1ª linha.
-        const sku = columnOf.sku !== undefined ? norm((cells[columnOf.sku]?.innerText || '').split('\n')[0]) : '';
+        // SKU no UpSeller vem com o ID do anúncio embaixo: 1ª linha = SKU, número longo = ID.
+        const skuLines = (columnOf.sku !== undefined ? cells[columnOf.sku]?.innerText || '' : '')
+          .split('\n')
+          .map(norm);
+        const sku = skuLines[0] || '';
+        const listingId = skuLines.slice(1).find((l) => /^\d{6,}$/.test(l)) || '';
 
         return {
           title,
           store,
           sku: clean(sku),
+          listingId,
           price: numeric(at('price')),
           promoPrice: numeric(at('promoPrice')),
           stock: numeric(at('stock')),

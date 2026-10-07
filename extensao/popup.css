@@ -40,7 +40,8 @@ h1 { font-size: 16px; margin: 0 0 4px; }
 .hint, .meta, small { color: var(--muted); }
 .hint { margin: 0 0 10px; }
 
-.actions { display: flex; gap: 8px; }
+.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+#analyze { grid-column: span 2; }
 button {
   flex: 1;
   padding: 8px 10px;
