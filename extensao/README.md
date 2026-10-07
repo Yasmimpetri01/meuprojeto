@@ -28,6 +28,12 @@ A extensão só existe no perfil onde você instalou; os outros perfis não são
 3. Clique no ícone da extensão → **Analisar esta página**.
 4. Repita para cada marketplace.
 
+Também funciona em **Análises → Vendas por Anúncio** (unidades vendidas, faturamento
+e preço médio dos anúncios que venderam no período).
+
+Anúncios publicados há menos de 14 dias (coluna "Atualizado/Publicado") não recebem
+alertas de vendas ou conversão — só um aviso de que são novos.
+
 Pelo UpSeller a extensão também lê loja, preço com desconto, visitas, curtidas e
 número de variantes, e avisa anúncios com muitas visitas e nenhuma venda.
 

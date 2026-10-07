@@ -106,3 +106,18 @@ test('conversão baixa com muitas visitas', () => {
   const r = evaluateListing({ title: 'Kit 3 Body Bebê Menino Proteção Solar UV50+ Manga Longa', sales: '1', visits: '1.594', images: 1 });
   assert.ok(r.issues.some((i) => /Conversão baixa: 1 venda\(s\) em 1594 visitas \(0,06%\)/.test(i.message)));
 });
+
+test('anúncio novo não é cobrado por vendas ou conversão', () => {
+  const now = new Date('2026-10-07T12:00:00').getTime();
+  const novo = evaluateListing(
+    { title: 'Kit 3 Body Bebê Menina Proteção Solar UV50+ Neon', sales: '0', visits: '97', publishedAt: '2026-10-04', images: 1 },
+    { now },
+  );
+  assert.deepEqual(novo.issues.map((i) => i.severity), ['info']);
+  assert.match(novo.issues[0].message, /publicado há 3 dia/);
+  const antigo = evaluateListing(
+    { title: 'Kit 3 Body Bebê Menina Proteção Solar UV50+ Neon', sales: '0', visits: '97', publishedAt: '2026-09-01', images: 1 },
+    { now },
+  );
+  assert.match(antigo.issues[0].message, /97 visitas e nenhuma venda/);
+});

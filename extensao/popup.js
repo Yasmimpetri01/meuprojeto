@@ -55,7 +55,9 @@ function render(report) {
       l.promoPrice && `Promo ${l.promoPrice}`,
       l.stock && `Estoque ${l.stock}`,
       l.sales && `Vendas ${l.sales}`,
+      l.revenue && `Faturamento ${l.revenue}`,
       l.visits && `Visitas ${l.visits}`,
+      l.publishedAt && `Publicado ${l.publishedAt.split('-').reverse().join('/')}`,
       l.status && `Status ${l.status}`,
     ].filter(Boolean).join(' · ');
 
@@ -97,12 +99,13 @@ async function analyze() {
       return;
     }
 
+    const analyzedAt = Date.now();
     const report = {
-      ...evaluateAll(result.listings, { mode: result.mode, marketplace: result.marketplace }),
+      ...evaluateAll(result.listings, { mode: result.mode, marketplace: result.marketplace, now: analyzedAt }),
       marketplace: result.marketplace,
       url: result.url,
       mode: result.mode,
-      analyzedAt: Date.now(),
+      analyzedAt,
     };
     await chrome.storage.local.set({ lastReport: report });
     render(report);

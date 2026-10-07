@@ -11,6 +11,8 @@ export const LIMITS = {
   // Conversão (vendas ÷ visitas) abaixo disso, com visitas suficientes, é considerada baixa.
   minConversion: 0.005,
   visitsForConversion: 200,
+  // Anúncios publicados há menos dias que isso não são cobrados por vendas/visitas.
+  newListingDays: 14,
 };
 
 // Limites de título por marketplace (o Mercado Livre corta em 60 caracteres).
@@ -60,7 +62,7 @@ export function parseStock(text) {
   return parts.reduce((sum, p) => sum + (parseNumber(p) ?? 0), 0);
 }
 
-export function evaluateListing(listing, { mode = 'list', marketplace = '' } = {}) {
+export function evaluateListing(listing, { mode = 'list', marketplace = '', now = Date.now() } = {}) {
   const issues = [];
   const add = (severity, message) => issues.push({ severity, message });
   const title = (listing.title || '').trim();
@@ -106,7 +108,14 @@ export function evaluateListing(listing, { mode = 'list', marketplace = '' } = {
 
   const sales = listing.sales !== '' && listing.sales !== undefined ? parseNumber(listing.sales) : null;
   const visits = listing.visits !== '' && listing.visits !== undefined ? parseNumber(listing.visits) : null;
-  if (sales === 0 && visits !== null && visits >= LIMITS.visitsWithoutSales) {
+  const ageDays = listing.publishedAt
+    ? Math.floor((now - new Date(`${listing.publishedAt}T00:00:00`).getTime()) / 86400000)
+    : null;
+  if (ageDays !== null && ageDays < LIMITS.newListingDays) {
+    if (!sales) {
+      add('info', `Anúncio novo (publicado há ${ageDays} dia(s)): vendas e conversão ainda não avaliadas.`);
+    }
+  } else if (sales === 0 && visits !== null && visits >= LIMITS.visitsWithoutSales) {
     add('warning', `${visits} visitas e nenhuma venda: o anúncio atrai, mas não converte. Revise preço, fotos, frete e descrição.`);
   } else if (sales === 0 && visits === 0) {
     add('info', 'Nenhuma visita ainda. Melhore palavras-chave do título ou impulsione o anúncio.');
@@ -250,7 +259,7 @@ export function toTitlesCsv(listings, marketplace = '') {
 }
 
 export function toCsv(listings) {
-  const cols = ['score', 'title', 'store', 'listingId', 'sku', 'price', 'promoPrice', 'stock', 'sales', 'visits', 'likes', 'variants', 'status', 'issues'];
+  const cols = ['score', 'title', 'store', 'listingId', 'sku', 'price', 'promoPrice', 'stock', 'sales', 'revenue', 'visits', 'likes', 'variants', 'publishedAt', 'status', 'issues'];
   const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const lines = listings.map((l) =>
     cols

@@ -23,9 +23,12 @@ export function extractListings() {
   const COLUMN_PATTERNS = [
     ['sku', /\bsku\b|c[oó]digo|seller sku/i],
     ['promoPrice', /pre[cç]o com|promo|desconto|discount|sale price/i],
+    ['revenue', /valor (total )?(de|das) vendas|faturamento|receita|gmv/i],
     ['price', /pre[cç]o|price|valor/i],
+    ['units', /unidades vend|itens vendidos|qtd\.? vendida|units sold/i],
     ['stock', /estoque|stock|invent[aá]rio|inventory|quantidade/i],
     ['sales', /vendid|vendas|sold|sales|pedidos/i],
+    ['published', /publica|criad|cria[cç][aã]o|created|listed/i],
     ['status', /status|situa[cç][aã]o/i],
     ['title', /produto|product|nome|name|t[ií]tulo|title|item|an[uú]ncio/i],
   ];
@@ -129,6 +132,11 @@ export function extractListings() {
         const promoInPrice = countIn(at('price'), /promo[cç][aã]o\s*:?\s*(R?\$?\s*[\d.,]+)/i);
         const price = at('price').split(/promo[cç][aã]o/i)[0].trim();
 
+        // Data de publicação = a data mais antiga da coluna (ex.: "Atualizado/Publicado").
+        const dates = [...at('published').matchAll(/(\d{2})\/(\d{2})\/(\d{4})/g)]
+          .map((m) => `${m[3]}-${m[2]}-${m[1]}`)
+          .sort();
+
         return {
           title,
           store,
@@ -139,18 +147,22 @@ export function extractListings() {
           stock: numeric(at('stock')),
           // UpSeller: "Vendas: 0 Eu gosto: 0 Visitas: 2"; TikTok: "0 item vendido Visualizações: 352".
           sales:
+            at('units') ||
             countIn(rowText, /([\d.,]+)\s*ite(?:m|ns)\s*vendidos?/i) ||
             countIn(rowText, /vendas?\s*:\s*([\d.,]+)/i) ||
             at('sales'),
           likes: countIn(rowText, /eu gosto\s*:\s*([\d.,]+)/i),
           visits: countIn(rowText, /(?:visitas?|visualiza[cç](?:õ|o)es)\s*:\s*([\d.,]+)/i),
           variants: countIn(rowText, /variantes?\s*\((\d+)\)/i),
+          revenue: numeric(at('revenue')),
+          publishedAt: dates[0] || '',
           status: clean(at('status')),
           images: row.querySelectorAll('img').length,
         };
       })
       // Descarta linhas auxiliares, ex. TikTok: "4 SKUs  Expandir".
-      .filter((l) => l && l.title && !/^\d+\s*skus?\b|^expandir\b/i.test(l.title));
+      // Descarta linha de totais ("Resumo") do relatório de vendas.
+      .filter((l) => l && l.title && !/^\d+\s*skus?\b|^expandir\b|^(resumo|total|summary)$/i.test(l.title));
   }
 
   // 1) Modo lista: tabelas de produtos.
@@ -163,7 +175,18 @@ export function extractListings() {
   const outerRoots = [...roots].filter((r) => ![...roots].some((o) => o !== r && o.contains(r)));
   const listings = outerRoots.flatMap(readGrid);
   if (listings.length) {
-    return { marketplace, url: location.href, mode: 'list', listings };
+    let listMarketplace = marketplace;
+    if (!found) {
+      // Relatórios do UpSeller não têm o marketplace no endereço; a loja vem como "LOJA [TikTok]".
+      const names = new Set(
+        listings
+          .map((l) => MARKETPLACES.find(([re]) => re.test(l.store || ''))?.[1])
+          .filter(Boolean),
+      );
+      if (names.size === 1) listMarketplace = [...names][0] + (isUpSeller ? ' (UpSeller)' : '');
+      else if (names.size > 1) listMarketplace = 'Vários marketplaces' + (isUpSeller ? ' (UpSeller)' : '');
+    }
+    return { marketplace: listMarketplace, url: location.href, mode: 'list', listings };
   }
 
   // 2) Modo anúncio único: página de edição/criação de produto.
